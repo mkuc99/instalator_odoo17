@@ -1,0 +1,272 @@
+#! /bin/bash
+clear
+echo -e "\033[32m********* INSTALATOR ODOO 17 ***********\033[0m"
+echo -e "\033[35mDziękuję za korzystanie z tego oprogramowania, Copyright © 2024 Marius Kuc Tel. 516 512 605\033[0m"
+echo ""
+echo -n "Proszę podać domenę bez www?: "
+read domain
+eval apt update -y && apt upgrade -y
+eval wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+eval apt install -f -y ./wkhtmltox_0.12.6.1-2.jammy_amd64.deb
+eval wget -O - https://nightly.odoo.com/odoo.key | sudo gpg --dearmor -o /usr/share/keyrings/odoo-archive-keyring.gpg
+echo "deb http://nightly.odoo.com/17.0/nightly/deb/ ./" >> /etc/apt/sources.list
+eval apt update -y
+eval apt install -y odoo
+eval systemctl enable --now odoo
+eval > /etc/odoo/odoo.conf
+echo '[options]
+
+addons_path = /usr/lib/python3/dist-packages/odoo/addons
+
+admin_passwd = admin
+
+csv_internal_sep = ,
+
+data_dir = /var/lib/odoo/.local/share/Odoo
+
+db_host = False
+
+db_maxconn = 64
+
+db_name = False
+
+db_password = False
+
+db_port = False
+
+db_sslmode = prefer
+
+db_template = template0
+
+db_user = odoo
+
+dbfilter =
+
+demo = {}
+
+email_from = False
+
+from_filter = False
+
+geoip_database = /usr/share/GeoIP/GeoLite2-City.mmdb
+
+http_enable = True
+
+http_interface =
+
+http_port = 8069
+
+import_partial =
+
+limit_memory_hard = 2684354560
+
+limit_memory_soft = 2147483648
+
+limit_request = 8192
+
+limit_time_cpu = 60
+
+limit_time_real = 120
+
+limit_time_real_cron = -1
+
+list_db = True
+
+log_db = False
+
+log_db_level = warning
+
+log_handler = :INFO
+
+log_level = info
+
+logfile = /var/log/odoo/odoo-server.log
+
+longpolling_port = 8072
+
+max_cron_threads = 2
+
+osv_memory_age_limit = False
+
+osv_memory_count_limit = False
+
+pg_path =
+
+pidfile =
+
+proxy_mode = True
+
+reportgz = False
+
+screencasts =
+
+screenshots = /tmp/odoo_tests
+
+server_wide_modules = base,web
+
+smtp_password = False
+
+smtp_port = 25
+
+smtp_server = localhost
+
+smtp_ssl = False
+
+smtp_ssl_certificate_filename = False
+
+smtp_ssl_private_key_filename = False
+
+smtp_user = False
+
+syslog = False
+
+test_enable = False
+
+test_file =
+
+test_tags = None
+
+transient_age_limit = 1.0
+
+translate_modules = ['all']
+
+unaccent = False
+
+upgrade_path =
+
+without_demo = False
+
+workers = 0' >> /etc/odoo/odoo.conf
+
+eval clear
+eval apt install -y nginx
+eval rm /etc/nginx/sites-enabled/default
+eval rm /etc/nginx/sites-available/default
+
+echo 'upstream odooserver {
+
+     server 127.0.0.1:8069;
+
+}
+
+server {
+
+     listen 80;
+
+     server_name domainname.com;
+
+
+     access_log /var/log/nginx/odoo_access.log;
+
+     error_log /var/log/nginx/odoo_error.log;
+
+
+     proxy_read_timeout 720s;
+
+     proxy_connect_timeout 720s;
+
+     proxy_send_timeout 720s;
+
+     proxy_set_header X-Forwarded-Host $host;
+
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+     proxy_set_header X-Forwarded-Proto $scheme;
+
+     proxy_set_header X-Real-IP $remote_addr;
+
+
+     location / {
+
+        proxy_redirect off;
+
+        proxy_pass http://odooserver;
+
+     }
+
+     location ~* /web/static/ {
+
+         proxy_cache_valid 200 90m;
+
+         proxy_buffering on;
+
+         expires 864000;
+
+         proxy_pass http://odooserver;
+
+     }
+
+     gzip_types text/css text/less text/plain text/xml application/xml application/json application/javascript;
+     gzip on;
+
+ }' >> /etc/nginx/sites-available/odoo.conf
+
+eval sed -i "s/domainname.com/${domain}/g" /etc/nginx/sites-available/odoo.conf
+eval ln -s /etc/nginx/sites-available/odoo.conf /etc/nginx/sites-enabled/odoo.conf
+eval service nginx restart
+eval apt install -y python3-certbot-nginx
+eval certbot --nginx certonly
+eval > /etc/nginx/sites-available/odoo.conf
+echo 'upstream odooserver {
+     server 127.0.0.1:8069;
+ }
+
+ server {
+     listen [::]:80;
+     listen 80;
+
+     server_name domainname.com www.domainname.com;
+
+     return 301 https://domainname.com$request_uri;
+ }
+
+ server {
+     listen [::]:443 ssl;
+     listen 443 ssl;
+
+     server_name www.domainname.com;
+
+     ssl_certificate /etc/letsencrypt/live/domainname.com/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/domainname.com/privkey.pem;
+
+     return 301 https://domainname.com$request_uri;
+ }
+
+ server {
+     listen [::]:443 ssl http2;
+     listen 443 ssl http2;
+
+     server_name domainname.com;
+
+     ssl_certificate /etc/letsencrypt/live/domainname.com/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/domainname.com/privkey.pem;
+
+     access_log /var/log/nginx/odoo_access.log;
+     error_log /var/log/nginx/odoo_error.log;
+
+     proxy_read_timeout 720s;
+     proxy_connect_timeout 720s;
+     proxy_send_timeout 720s;
+     proxy_set_header X-Forwarded-Host $host;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header X-Forwarded-Proto $scheme;
+     proxy_set_header X-Real-IP $remote_addr;
+
+     location / {
+        proxy_redirect off;
+        proxy_pass http://odooserver;
+     }
+
+     location ~* /web/static/ {
+         proxy_cache_valid 200 90m;
+         proxy_buffering on;
+         expires 864000;
+         proxy_pass http://odooserver;
+     }
+
+     gzip_types text/css text/less text/plain text/xml application/xml application/json application/javascript;
+     gzip on;
+ }' >> /etc/nginx/sites-available/odoo.conf
+eval sed -i "s/domainname.com/${domain}/g" /etc/nginx/sites-available/odoo.conf
+eval service odoo restart
+eval service nginx restart
