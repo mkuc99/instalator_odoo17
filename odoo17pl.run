@@ -8,7 +8,8 @@ read domain
 eval apt update -y && apt upgrade -y
 eval wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb
 eval apt install -f -y ./wkhtmltox_0.12.6.1-2.jammy_amd64.deb
-eval wget -O - https://nightly.odoo.com/odoo.key | sudo gpg --dearmor -o /usr/share/keyrings/odoo-archive-keyring.gpg
+eval wget -O - https://nightly.odoo.com/odoo.key | apt-key add -
+# eval wget -O - https://nightly.odoo.com/odoo.key | sudo gpg --dearmor -o /usr/share/keyrings/odoo-archive-keyring.gpg
 echo "deb http://nightly.odoo.com/17.0/nightly/deb/ ./" >> /etc/apt/sources.list
 eval apt update -y
 eval apt install -y odoo
